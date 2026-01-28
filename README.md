@@ -80,6 +80,9 @@ export GWT_SKIP_INSTALL=1
 
 # Always symlink env files instead of copying (default: 0)
 export GWT_LINK_ENV=1
+
+# Copy additional files/folders to each worktree
+export GWT_COPY_PATHS=".cert .config/local"
 ```
 
 ## How It Works
