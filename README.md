@@ -13,18 +13,11 @@ Git worktrees let you have multiple branches checked out at once in separate dir
 
 ## Installation
 
-### macOS (Homebrew)
-
-```bash
-brew tap donkoko/grove
-brew install grove
-```
-
-### Linux / macOS (manual)
-
 ```bash
 curl -fsSL https://raw.githubusercontent.com/donkoko/grove/main/install.sh | bash
 ```
+
+Homebrew support coming soon.
 
 ### Enable auto-cd (recommended)
 
@@ -33,15 +26,11 @@ After installation, enable the shell integration to automatically cd into new wo
 **Zsh:**
 ```bash
 echo 'source /usr/local/share/grove/integrations/grove.zsh' >> ~/.zshrc && source ~/.zshrc
-# or for Homebrew on Apple Silicon:
-echo 'source /opt/homebrew/share/grove/integrations/grove.zsh' >> ~/.zshrc && source ~/.zshrc
 ```
 
 **Bash:**
 ```bash
 echo 'source /usr/local/share/grove/integrations/grove.bash' >> ~/.bashrc && source ~/.bashrc
-# or for Homebrew on Apple Silicon:
-echo 'source /opt/homebrew/share/grove/integrations/grove.bash' >> ~/.bashrc && source ~/.bashrc
 ```
 
 ## Usage
@@ -159,13 +148,6 @@ my-app/
 
 ## Uninstall
 
-### Homebrew
-```bash
-brew uninstall grove
-brew untap donkoko/grove
-```
-
-### Manual
 ```bash
 curl -fsSL https://raw.githubusercontent.com/donkoko/grove/main/uninstall.sh | bash
 ```
