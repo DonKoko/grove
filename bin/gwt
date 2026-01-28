@@ -20,6 +20,8 @@ gwt - Git Worktree Tool (part of Grove)
 Usage:
   gwt <existing-branch> [-f folder]        Checkout an existing branch
   gwt -n <new-branch> [base] [-f folder]   Create a new branch (default base: main)
+  gwt list                                 List all worktrees
+  gwt remove <name> [--force]              Remove a worktree
 
 Options:
   -n             Create a new branch instead of checking out existing
@@ -36,6 +38,9 @@ Examples:
   gwt -n feature/new-thing dev        # new branch from dev
   gwt -n feature/new-thing -f cool    # custom folder name
   gwt feature/auth -s                 # skip npm install
+  gwt list                            # list all worktrees
+  gwt remove auth                     # remove .worktrees/auth
+  gwt remove auth --force             # force remove if dirty
 
 Configuration (environment variables):
   GWT_DIR          Worktrees directory name (default: .worktrees)
@@ -52,7 +57,50 @@ show_version() {
   echo "gwt version $VERSION"
 }
 
+cmd_list() {
+  git worktree list
+}
+
+cmd_remove() {
+  local name="$1"
+  local force="$2"
+
+  if [[ -z "$name" ]]; then
+    echo "Error: No worktree name specified."
+    echo "Usage: gwt remove <name> [--force]"
+    exit 1
+  fi
+
+  local worktree_path="${GWT_DIR}/${name}"
+
+  if [[ ! -d "$worktree_path" ]]; then
+    echo "Error: Worktree '${worktree_path}' does not exist."
+    exit 1
+  fi
+
+  if [[ "$force" == "--force" ]] || [[ "$force" == "-f" ]]; then
+    git worktree remove --force "$worktree_path"
+  else
+    git worktree remove "$worktree_path"
+  fi
+
+  echo "✓ Removed worktree ${worktree_path}"
+}
+
 main() {
+  # Handle subcommands
+  case "${1:-}" in
+    list)
+      cmd_list
+      exit 0
+      ;;
+    remove)
+      shift
+      cmd_remove "$1" "$2"
+      exit 0
+      ;;
+  esac
+
   local new_branch=false
   local base_branch="main"
   local folder_name=""

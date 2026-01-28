@@ -3,7 +3,12 @@
 # Add to fpath or source directly
 
 _gwt() {
-  local -a options branches
+  local -a options branches subcommands worktrees
+
+  subcommands=(
+    'list:List all worktrees'
+    'remove:Remove a worktree'
+  )
 
   options=(
     '-n[Create a new branch]'
@@ -18,13 +23,24 @@ _gwt() {
     '--version[Show version]'
   )
 
+  # Handle subcommand completions
+  if [[ "${words[2]}" == "remove" ]]; then
+    # Complete worktree names for remove
+    local gwt_dir="${GWT_DIR:-.worktrees}"
+    if [[ -d "$gwt_dir" ]]; then
+      worktrees=(${(f)"$(ls -1 "$gwt_dir" 2>/dev/null)"})
+    fi
+    _arguments "2:worktree:($worktrees)" "3:force:(--force)"
+    return
+  fi
+
   if git rev-parse --git-dir &>/dev/null; then
     branches=(${(f)"$(git branch -a 2>/dev/null | sed 's/^[* ]*//' | sed 's/remotes\/origin\///' | sort -u)"})
   fi
 
   _arguments -s \
     $options \
-    '*:branch:($branches)'
+    '1:command or branch:(${subcommands%%:*} $branches)'
 }
 
 _gwt "$@"
