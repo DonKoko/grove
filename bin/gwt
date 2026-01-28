@@ -11,6 +11,7 @@ GWT_DIR="${GWT_DIR:-.worktrees}"
 GWT_ENV_FILES="${GWT_ENV_FILES:-.env .env.local}"
 GWT_SKIP_INSTALL="${GWT_SKIP_INSTALL:-0}"
 GWT_LINK_ENV="${GWT_LINK_ENV:-0}"
+GWT_COPY_PATHS="${GWT_COPY_PATHS:-}"
 
 show_help() {
   cat << EOF
@@ -39,6 +40,7 @@ Examples:
 Configuration (environment variables):
   GWT_DIR          Worktrees directory name (default: .worktrees)
   GWT_ENV_FILES    Space-separated env files to copy (default: .env .env.local)
+  GWT_COPY_PATHS   Space-separated files/folders to copy (e.g., .cert .config)
   GWT_SKIP_INSTALL Set to 1 to always skip dependency installation
   GWT_LINK_ENV     Set to 1 to symlink env files instead of copying
 
@@ -162,6 +164,13 @@ main() {
       else
         cp "${env_file}" "${worktree_path}/${env_file}"
       fi
+    fi
+  done
+
+  # Copy additional paths (files or directories)
+  for copy_path in $GWT_COPY_PATHS; do
+    if [[ -e "${copy_path}" ]]; then
+      cp -r "${copy_path}" "${worktree_path}/"
     fi
   done
 
