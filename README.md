@@ -25,12 +25,12 @@ After installation, enable the shell integration to automatically cd into new wo
 
 **Zsh:**
 ```bash
-echo 'source /usr/local/share/grove/integrations/grove.zsh' >> ~/.zshrc && source ~/.zshrc
+echo -e '\n# Grove - git worktree tool\nsource /usr/local/share/grove/integrations/grove.zsh' >> ~/.zshrc && source ~/.zshrc
 ```
 
 **Bash:**
 ```bash
-echo 'source /usr/local/share/grove/integrations/grove.bash' >> ~/.bashrc && source ~/.bashrc
+echo -e '\n# Grove - git worktree tool\nsource /usr/local/share/grove/integrations/grove.bash' >> ~/.bashrc && source ~/.bashrc
 ```
 
 ## Usage
