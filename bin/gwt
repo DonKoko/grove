@@ -1,0 +1,198 @@
+#!/usr/bin/env bash
+# gwt - Git Worktree Tool (part of Grove)
+# https://github.com/donkoko/grove
+
+set -e
+
+VERSION="1.0.0"
+
+# Configuration with defaults
+GWT_DIR="${GWT_DIR:-.worktrees}"
+GWT_ENV_FILES="${GWT_ENV_FILES:-.env .env.local}"
+GWT_SKIP_INSTALL="${GWT_SKIP_INSTALL:-0}"
+GWT_LINK_ENV="${GWT_LINK_ENV:-0}"
+
+show_help() {
+  cat << EOF
+gwt - Git Worktree Tool (part of Grove)
+
+Usage:
+  gwt <existing-branch> [-f folder]        Checkout an existing branch
+  gwt -n <new-branch> [base] [-f folder]   Create a new branch (default base: main)
+
+Options:
+  -n             Create a new branch instead of checking out existing
+  -f <name>      Custom folder name (default: branch name without prefix)
+  -l, --link     Symlink env files instead of copying
+  -s, --skip     Skip dependency installation
+  -h, --help     Show this help message
+  -v, --version  Show version
+
+Examples:
+  gwt feature/auth                    # → .worktrees/auth
+  gwt feature/auth -f login           # → .worktrees/login
+  gwt -n feature/new-thing            # new branch from main
+  gwt -n feature/new-thing dev        # new branch from dev
+  gwt -n feature/new-thing -f cool    # custom folder name
+  gwt feature/auth -s                 # skip npm install
+
+Configuration (environment variables):
+  GWT_DIR          Worktrees directory name (default: .worktrees)
+  GWT_ENV_FILES    Space-separated env files to copy (default: .env .env.local)
+  GWT_SKIP_INSTALL Set to 1 to always skip dependency installation
+  GWT_LINK_ENV     Set to 1 to symlink env files instead of copying
+
+The worktree is created at <GWT_DIR>/<folder-name>
+EOF
+}
+
+show_version() {
+  echo "gwt version $VERSION"
+}
+
+main() {
+  local new_branch=false
+  local base_branch="main"
+  local folder_name=""
+  local branch=""
+  local skip_install=false
+  local link_env=false
+  local positional=()
+
+  # Parse arguments
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -h|--help)
+        show_help
+        exit 0
+        ;;
+      -v|--version)
+        show_version
+        exit 0
+        ;;
+      -n)
+        new_branch=true
+        shift
+        ;;
+      -f)
+        folder_name="$2"
+        shift 2
+        ;;
+      -s|--skip)
+        skip_install=true
+        shift
+        ;;
+      -l|--link)
+        link_env=true
+        shift
+        ;;
+      -*)
+        echo "Error: Unknown option $1"
+        echo "Use --help for usage."
+        exit 1
+        ;;
+      *)
+        positional+=("$1")
+        shift
+        ;;
+    esac
+  done
+
+  # Extract positional args (bash arrays are 0-indexed)
+  branch="${positional[0]:-}"
+
+  if [[ -z "$branch" ]]; then
+    echo "Error: No branch specified. Use --help for usage."
+    exit 1
+  fi
+
+  # Check if we're in a git repo
+  if ! git rev-parse --git-dir > /dev/null 2>&1; then
+    echo "Error: Not in a git repository."
+    exit 1
+  fi
+
+  # Check if we're in the repo root
+  local repo_root
+  repo_root=$(git rev-parse --show-toplevel)
+  
+  if [[ "$PWD" != "$repo_root" ]]; then
+    echo "Error: Not in the root of the git repository."
+    echo "Run this from: $repo_root"
+    exit 1
+  fi
+
+  # Use custom folder name or derive from branch
+  if [[ -z "$folder_name" ]]; then
+    folder_name="${branch##*/}"
+  fi
+
+  if [[ "$new_branch" == true ]] && [[ -n "${positional[1]:-}" ]]; then
+    base_branch="${positional[1]}"
+  fi
+
+  # Create worktrees directory if it doesn't exist
+  mkdir -p "$GWT_DIR"
+
+  # Add to .gitignore if not already there
+  if [[ -f ".gitignore" ]]; then
+    if ! grep -q "^${GWT_DIR}/$" .gitignore 2>/dev/null; then
+      echo "${GWT_DIR}/" >> .gitignore
+      echo "Added ${GWT_DIR}/ to .gitignore"
+    fi
+  else
+    echo "${GWT_DIR}/" > .gitignore
+    echo "Created .gitignore with ${GWT_DIR}/"
+  fi
+
+  # Create the worktree
+  if [[ "$new_branch" == true ]]; then
+    git worktree add -b "$branch" "${GWT_DIR}/${folder_name}" "$base_branch"
+  else
+    git worktree add "${GWT_DIR}/${folder_name}" "$branch"
+  fi
+
+  local worktree_path="${GWT_DIR}/${folder_name}"
+
+  # Copy or symlink env files
+  for env_file in $GWT_ENV_FILES; do
+    if [[ -f "${env_file}" ]]; then
+      if [[ "$link_env" == true ]] || [[ "$GWT_LINK_ENV" == "1" ]]; then
+        ln -sf "../../${env_file}" "${worktree_path}/${env_file}"
+      else
+        cp "${env_file}" "${worktree_path}/${env_file}"
+      fi
+    fi
+  done
+
+  # Use nvm default if nvm is available (source it first if needed)
+  if [[ -s "$HOME/.nvm/nvm.sh" ]]; then
+    source "$HOME/.nvm/nvm.sh"
+    nvm use default 2>/dev/null || true
+  fi
+
+  # Install dependencies unless skipped
+  if [[ "$skip_install" != true ]] && [[ "$GWT_SKIP_INSTALL" != "1" ]]; then
+    cd "$worktree_path"
+    
+    if [[ -f "package-lock.json" ]]; then
+      npm install
+    elif [[ -f "pnpm-lock.yaml" ]]; then
+      pnpm install
+    elif [[ -f "yarn.lock" ]]; then
+      yarn install
+    elif [[ -f "bun.lockb" ]]; then
+      bun install
+    fi
+    
+    cd - > /dev/null
+  fi
+
+  echo ""
+  echo "✓ Worktree created at ${worktree_path}"
+  
+  # Output path marker for shell integration to capture
+  echo "GWT_PATH:${PWD}/${worktree_path}"
+}
+
+main "$@"

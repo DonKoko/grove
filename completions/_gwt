@@ -1,0 +1,30 @@
+#compdef gwt
+# Zsh completion for gwt
+# Add to fpath or source directly
+
+_gwt() {
+  local -a options branches
+
+  options=(
+    '-n[Create a new branch]'
+    '-f[Custom folder name]:folder name:'
+    '-l[Symlink env files instead of copying]'
+    '--link[Symlink env files instead of copying]'
+    '-s[Skip dependency installation]'
+    '--skip[Skip dependency installation]'
+    '-h[Show help]'
+    '--help[Show help]'
+    '-v[Show version]'
+    '--version[Show version]'
+  )
+
+  if git rev-parse --git-dir &>/dev/null; then
+    branches=(${(f)"$(git branch -a 2>/dev/null | sed 's/^[* ]*//' | sed 's/remotes\/origin\///' | sort -u)"})
+  fi
+
+  _arguments -s \
+    $options \
+    '*:branch:($branches)'
+}
+
+_gwt "$@"
