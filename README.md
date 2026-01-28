@@ -30,21 +30,19 @@ curl -fsSL https://raw.githubusercontent.com/donkoko/grove/main/install.sh | bas
 
 After installation, enable the shell integration to automatically cd into new worktrees:
 
-**Zsh** (add to `~/.zshrc`):
+**Zsh:**
 ```bash
-source /usr/local/share/grove/integrations/grove.zsh
+echo 'source /usr/local/share/grove/integrations/grove.zsh' >> ~/.zshrc && source ~/.zshrc
 # or for Homebrew on Apple Silicon:
-source /opt/homebrew/share/grove/integrations/grove.zsh
+echo 'source /opt/homebrew/share/grove/integrations/grove.zsh' >> ~/.zshrc && source ~/.zshrc
 ```
 
-**Bash** (add to `~/.bashrc`):
+**Bash:**
 ```bash
-source /usr/local/share/grove/integrations/grove.bash
+echo 'source /usr/local/share/grove/integrations/grove.bash' >> ~/.bashrc && source ~/.bashrc
 # or for Homebrew on Apple Silicon:
-source /opt/homebrew/share/grove/integrations/grove.bash
+echo 'source /opt/homebrew/share/grove/integrations/grove.bash' >> ~/.bashrc && source ~/.bashrc
 ```
-
-Then restart your shell or run `source ~/.zshrc` (or `~/.bashrc`).
 
 ## Usage
 

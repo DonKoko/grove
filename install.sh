@@ -61,25 +61,21 @@ success "Grove installed successfully!"
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo "To enable auto-cd into worktrees, add to your shell config:"
+echo "To enable auto-cd into worktrees, run:"
 echo ""
 
 if [[ "$SHELL_NAME" == "zsh" ]]; then
-  echo "  # Add to ~/.zshrc"
-  echo "  source /usr/local/share/grove/integrations/grove.zsh"
+  echo "  echo 'source /usr/local/share/grove/integrations/grove.zsh' >> ~/.zshrc && source ~/.zshrc"
 elif [[ "$SHELL_NAME" == "bash" ]]; then
-  echo "  # Add to ~/.bashrc"
-  echo "  source /usr/local/share/grove/integrations/grove.bash"
+  echo "  echo 'source /usr/local/share/grove/integrations/grove.bash' >> ~/.bashrc && source ~/.bashrc"
 else
-  echo "  # For zsh (~/.zshrc):"
-  echo "  source /usr/local/share/grove/integrations/grove.zsh"
+  echo "  # For zsh:"
+  echo "  echo 'source /usr/local/share/grove/integrations/grove.zsh' >> ~/.zshrc && source ~/.zshrc"
   echo ""
-  echo "  # For bash (~/.bashrc):"
-  echo "  source /usr/local/share/grove/integrations/grove.bash"
+  echo "  # For bash:"
+  echo "  echo 'source /usr/local/share/grove/integrations/grove.bash' >> ~/.bashrc && source ~/.bashrc"
 fi
 
-echo ""
-echo "Then restart your shell or run: source ~/.${SHELL_NAME}rc"
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""

@@ -20,15 +20,13 @@ class Grove < Formula
 
   def caveats
     <<~EOS
-      To enable auto-cd into worktrees after creation, add to your shell config:
+      To enable auto-cd into worktrees after creation, run:
 
-      For zsh (~/.zshrc):
-        source #{HOMEBREW_PREFIX}/share/grove/integrations/grove.zsh
+      For zsh:
+        echo 'source #{HOMEBREW_PREFIX}/share/grove/integrations/grove.zsh' >> ~/.zshrc && source ~/.zshrc
 
-      For bash (~/.bashrc):
-        source #{HOMEBREW_PREFIX}/share/grove/integrations/grove.bash
-
-      Then restart your shell.
+      For bash:
+        echo 'source #{HOMEBREW_PREFIX}/share/grove/integrations/grove.bash' >> ~/.bashrc && source ~/.bashrc
     EOS
   end
 
