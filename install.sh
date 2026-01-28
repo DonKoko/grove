@@ -65,15 +65,15 @@ echo "To enable auto-cd into worktrees, run:"
 echo ""
 
 if [[ "$SHELL_NAME" == "zsh" ]]; then
-  echo "  echo 'source /usr/local/share/grove/integrations/grove.zsh' >> ~/.zshrc && source ~/.zshrc"
+  echo "  echo -e '\\n# Grove - git worktree tool\\nsource /usr/local/share/grove/integrations/grove.zsh' >> ~/.zshrc && source ~/.zshrc"
 elif [[ "$SHELL_NAME" == "bash" ]]; then
-  echo "  echo 'source /usr/local/share/grove/integrations/grove.bash' >> ~/.bashrc && source ~/.bashrc"
+  echo "  echo -e '\\n# Grove - git worktree tool\\nsource /usr/local/share/grove/integrations/grove.bash' >> ~/.bashrc && source ~/.bashrc"
 else
   echo "  # For zsh:"
-  echo "  echo 'source /usr/local/share/grove/integrations/grove.zsh' >> ~/.zshrc && source ~/.zshrc"
+  echo "  echo -e '\\n# Grove - git worktree tool\\nsource /usr/local/share/grove/integrations/grove.zsh' >> ~/.zshrc && source ~/.zshrc"
   echo ""
   echo "  # For bash:"
-  echo "  echo 'source /usr/local/share/grove/integrations/grove.bash' >> ~/.bashrc && source ~/.bashrc"
+  echo "  echo -e '\\n# Grove - git worktree tool\\nsource /usr/local/share/grove/integrations/grove.bash' >> ~/.bashrc && source ~/.bashrc"
 fi
 
 echo ""
