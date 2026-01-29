@@ -7,20 +7,15 @@ gwt() {
   local exit_code
   local worktree_path
 
-  # Run the actual gwt command and capture output
-  output=$(command gwt "$@" 2>&1)
+  # Run gwt: stderr (progress) goes straight to terminal, stdout is captured
+  output=$(command gwt "$@")
   exit_code=$?
-
-  # Print the output (excluding the path marker)
-  echo "$output" | grep -v "^GWT_PATH:"
 
   # If successful, extract path and cd into it
   if [[ $exit_code -eq 0 ]]; then
     worktree_path=$(echo "$output" | grep "^GWT_PATH:" | cut -d: -f2-)
     if [[ -n "$worktree_path" ]] && [[ -d "$worktree_path" ]]; then
       cd "$worktree_path" || return 1
-      echo ""
-      echo "Now in: $worktree_path"
     fi
   fi
 

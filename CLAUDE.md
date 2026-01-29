@@ -45,3 +45,4 @@ git checkout main
 ## Commit Convention
 
 Use commitizen/conventional commits format (e.g., `feat:`, `fix:`, `chore:`).
+Never add a `Co-Authored-By` line to commit messages.

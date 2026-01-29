@@ -6,6 +6,58 @@ set -e
 
 VERSION="0.0.1"
 
+# Spinner helpers
+SPINNER_PID=""
+SPINNER_MSG=""
+SPINNER_TMPFILE=""
+
+cleanup_spinner() {
+  if [[ -n "$SPINNER_PID" ]]; then
+    kill "$SPINNER_PID" 2>/dev/null || true
+    wait "$SPINNER_PID" 2>/dev/null || true
+    SPINNER_PID=""
+    printf "\r\033[K" >&2
+  fi
+  [[ -n "$SPINNER_TMPFILE" ]] && rm -f "$SPINNER_TMPFILE"
+}
+trap cleanup_spinner EXIT INT TERM
+
+start_spinner() {
+  SPINNER_MSG="$1"
+  SPINNER_TMPFILE=$(mktemp)
+  (
+    local frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+    local i=0
+    while true; do
+      printf "\r${frames[$i]} %s" "$SPINNER_MSG" >&2
+      i=$(( (i + 1) % ${#frames[@]} ))
+      sleep 0.08
+    done
+  ) &
+  SPINNER_PID=$!
+}
+
+stop_spinner() {
+  local exit_code="${1:-0}"
+  local success_msg="${2:-$SPINNER_MSG}"
+  if [[ -n "$SPINNER_PID" ]]; then
+    kill "$SPINNER_PID" 2>/dev/null || true
+    wait "$SPINNER_PID" 2>/dev/null || true
+    SPINNER_PID=""
+  fi
+  printf "\r\033[K" >&2
+  if [[ "$exit_code" -eq 0 ]]; then
+    echo -e "\033[32m✓\033[0m ${success_msg}" >&2
+  else
+    echo -e "\033[31m✗\033[0m ${SPINNER_MSG}" >&2
+    if [[ -s "$SPINNER_TMPFILE" ]]; then
+      sed 's/^/  /' "$SPINNER_TMPFILE" >&2
+    fi
+  fi
+  rm -f "$SPINNER_TMPFILE"
+  SPINNER_TMPFILE=""
+}
+
 # Configuration with defaults
 GWT_DIR="${GWT_DIR:-.worktrees}"
 GWT_ENV_FILES="${GWT_ENV_FILES:-.env .env.local}"
@@ -78,13 +130,15 @@ cmd_remove() {
     exit 1
   fi
 
+  local rc=0
+  start_spinner "Removing worktree..."
   if [[ "$force" == "--force" ]] || [[ "$force" == "-f" ]]; then
-    git worktree remove --force "$worktree_path"
+    git worktree remove --force "$worktree_path" > "$SPINNER_TMPFILE" 2>&1 || rc=$?
   else
-    git worktree remove "$worktree_path"
+    git worktree remove "$worktree_path" > "$SPINNER_TMPFILE" 2>&1 || rc=$?
   fi
-
-  echo "✓ Removed worktree ${worktree_path}"
+  stop_spinner "$rc" "Removed worktree ${worktree_path}"
+  [[ "$rc" -ne 0 ]] && exit 1
 }
 
 main() {
@@ -188,68 +242,105 @@ main() {
   if [[ -f ".gitignore" ]]; then
     if ! grep -q "^${GWT_DIR}/$" .gitignore 2>/dev/null; then
       echo "${GWT_DIR}/" >> .gitignore
-      echo "Added ${GWT_DIR}/ to .gitignore"
     fi
   else
     echo "${GWT_DIR}/" > .gitignore
-    echo "Created .gitignore with ${GWT_DIR}/"
-  fi
-
-  # Create the worktree
-  if [[ "$new_branch" == true ]]; then
-    git worktree add -b "$branch" "${GWT_DIR}/${folder_name}" "$base_branch"
-  else
-    git worktree add "${GWT_DIR}/${folder_name}" "$branch"
   fi
 
   local worktree_path="${GWT_DIR}/${folder_name}"
 
+  # Create the worktree
+  local rc=0
+  start_spinner "Creating worktree..."
+  if [[ "$new_branch" == true ]]; then
+    git worktree add -b "$branch" "${worktree_path}" "$base_branch" > "$SPINNER_TMPFILE" 2>&1 || rc=$?
+  else
+    git worktree add "${worktree_path}" "$branch" > "$SPINNER_TMPFILE" 2>&1 || rc=$?
+  fi
+  stop_spinner "$rc" "Created worktree"
+  [[ "$rc" -ne 0 ]] && exit 1
+
   # Copy or symlink env files
+  local has_env=false
   for env_file in $GWT_ENV_FILES; do
-    if [[ -f "${env_file}" ]]; then
-      if [[ "$link_env" == true ]] || [[ "$GWT_LINK_ENV" == "1" ]]; then
-        ln -sf "../../${env_file}" "${worktree_path}/${env_file}"
-      else
-        cp "${env_file}" "${worktree_path}/${env_file}"
-      fi
-    fi
+    [[ -f "${env_file}" ]] && has_env=true && break
   done
 
-  # Copy additional paths (files or directories)
-  for copy_path in $GWT_COPY_PATHS; do
-    if [[ -e "${copy_path}" ]]; then
-      cp -r "${copy_path}" "${worktree_path}/"
+  if [[ "$has_env" == true ]]; then
+    start_spinner "Copying env files..."
+    for env_file in $GWT_ENV_FILES; do
+      if [[ -f "${env_file}" ]]; then
+        if [[ "$link_env" == true ]] || [[ "$GWT_LINK_ENV" == "1" ]]; then
+          ln -sf "../../${env_file}" "${worktree_path}/${env_file}"
+        else
+          cp "${env_file}" "${worktree_path}/${env_file}"
+        fi
+      fi
+    done
+    local env_action="Copied"
+    if [[ "$link_env" == true ]] || [[ "$GWT_LINK_ENV" == "1" ]]; then
+      env_action="Linked"
     fi
-  done
+    stop_spinner 0 "${env_action} env files"
+  fi
+
+  # Copy additional paths (files or directories)
+  if [[ -n "$GWT_COPY_PATHS" ]]; then
+    local has_paths=false
+    for copy_path in $GWT_COPY_PATHS; do
+      [[ -e "${copy_path}" ]] && has_paths=true && break
+    done
+
+    if [[ "$has_paths" == true ]]; then
+      start_spinner "Copying additional paths..."
+      for copy_path in $GWT_COPY_PATHS; do
+        if [[ -e "${copy_path}" ]]; then
+          cp -r "${copy_path}" "${worktree_path}/"
+        fi
+      done
+      stop_spinner 0 "Copied additional paths"
+    fi
+  fi
 
   # Use nvm default if nvm is available (source it first if needed)
   if [[ -s "$HOME/.nvm/nvm.sh" ]]; then
-    source "$HOME/.nvm/nvm.sh"
-    nvm use default 2>/dev/null || true
+    source "$HOME/.nvm/nvm.sh" 2>/dev/null
+    nvm use default > /dev/null 2>&1 || true
   fi
 
   # Install dependencies unless skipped
   if [[ "$skip_install" != true ]] && [[ "$GWT_SKIP_INSTALL" != "1" ]]; then
     cd "$worktree_path"
-    
+
+    local pkg_manager=""
     if [[ -f "package-lock.json" ]]; then
-      npm install
+      pkg_manager="npm"
     elif [[ -f "pnpm-lock.yaml" ]]; then
-      pnpm install
+      pkg_manager="pnpm"
     elif [[ -f "yarn.lock" ]]; then
-      yarn install
+      pkg_manager="yarn"
     elif [[ -f "bun.lockb" ]]; then
-      bun install
+      pkg_manager="bun"
     fi
-    
+
+    if [[ -n "$pkg_manager" ]]; then
+      rc=0
+      start_spinner "Installing dependencies..."
+      $pkg_manager install > "$SPINNER_TMPFILE" 2>&1 || rc=$?
+      stop_spinner "$rc" "Installed dependencies (${pkg_manager})"
+      [[ "$rc" -ne 0 ]] && cd - > /dev/null && exit 1
+    fi
+
     cd - > /dev/null
   fi
 
-  echo ""
-  echo "✓ Worktree created at ${worktree_path}"
+  echo "" >&2
+  echo -e "\033[32m✓\033[0m Worktree ready at ${worktree_path}" >&2
   
-  # Output path marker for shell integration to capture
-  echo "GWT_PATH:${PWD}/${worktree_path}"
+  # Output path marker for shell integration to capture (hidden when running directly in a terminal)
+  if [[ ! -t 1 ]]; then
+    echo "GWT_PATH:${PWD}/${worktree_path}"
+  fi
 }
 
 main "$@"
