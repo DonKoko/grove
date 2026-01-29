@@ -123,14 +123,89 @@ cmd_update() {
   [[ "$rc" -ne 0 ]] && exit 1
 }
 
+select_worktree() {
+  local -a items=("$@")
+  local count=${#items[@]}
+  local selected=0
+  local hint="\033[2m↑/↓ navigate · enter select · esc/q cancel\033[0m"
+  # Total drawn lines: count + 1 (blank line before hint) + 1 (hint)
+  local total_lines=$((count + 2))
+
+  # Hide cursor
+  printf "\033[?25l" >&2
+  trap 'printf "\033[?25h" >&2' RETURN
+
+  _draw_list() {
+    for i in "${!items[@]}"; do
+      if [[ $i -eq $selected ]]; then
+        printf "\033[36m❯ %s\033[0m\n" "${items[$i]}" >&2
+      else
+        printf "  %s\n" "${items[$i]}" >&2
+      fi
+    done
+    printf "\n" >&2
+    printf "${hint}\n" >&2
+  }
+
+  _draw_list
+
+  while true; do
+    IFS= read -rsn1 key
+    if [[ "$key" == $'\x1b' ]]; then
+      read -rsn1 -t 1 next 2>/dev/null || true
+      if [[ -n "$next" ]]; then
+        read -rsn1 -t 1 dir 2>/dev/null || true
+        key+="${next}${dir}"
+      fi
+    fi
+
+    case "$key" in
+      $'\x1b[A'|k)
+        ((selected > 0)) && ((selected--))
+        ;;
+      $'\x1b[B'|j)
+        ((selected < count - 1)) && ((selected++))
+        ;;
+      "")
+        break
+        ;;
+      q|$'\x1b')
+        printf "\033[%dA\033[J" "$total_lines" >&2
+        return 1
+        ;;
+    esac
+
+    printf "\033[%dA\033[J" "$total_lines" >&2
+    _draw_list
+  done
+
+  echo "${items[$selected]}"
+}
+
 cmd_remove() {
   local name="$1"
   local force="$2"
 
   if [[ -z "$name" ]]; then
-    echo "Error: No worktree name specified."
-    echo "Usage: gwt remove <name> [--force]"
-    exit 1
+    # Interactive selection if no name given
+    if [[ ! -d "$GWT_DIR" ]]; then
+      echo "No worktrees found." >&2
+      exit 1
+    fi
+
+    local -a worktrees=()
+    for dir in "$GWT_DIR"/*/; do
+      [[ -d "$dir" ]] && worktrees+=("$(basename "$dir")")
+    done
+
+    if [[ ${#worktrees[@]} -eq 0 ]]; then
+      echo "No worktrees found." >&2
+      exit 1
+    fi
+
+    echo -e "\033[1mSelect a worktree to remove:\033[0m" >&2
+    echo "" >&2
+    name=$(select_worktree "${worktrees[@]}") || exit 0
   fi
 
   local worktree_path="${GWT_DIR}/${name}"
@@ -160,7 +235,7 @@ main() {
       ;;
     remove)
       shift
-      cmd_remove "$1" "$2"
+      cmd_remove "${1:-}" "${2:-}"
       exit 0
       ;;
     update)
