@@ -22,6 +22,8 @@ gwt() {
   return $exit_code
 }
 
+grove() { gwt "$@"; }
+
 # Add completions to fpath
 if [[ -d "/usr/local/share/grove/completions" ]]; then
   fpath=("/usr/local/share/grove/completions" $fpath)

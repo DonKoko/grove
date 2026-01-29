@@ -35,8 +35,8 @@ _gwt_completions() {
     # Complete subcommands and branch names
     local branches
     branches=$(git branch -a 2>/dev/null | sed 's/^[* ]*//' | sed 's/remotes\/origin\///' | sort -u)
-    COMPREPLY=($(compgen -W "list remove $branches" -- "$cur"))
+    COMPREPLY=($(compgen -W "list remove update $branches" -- "$cur"))
   fi
 }
 
-complete -F _gwt_completions gwt
+complete -F _gwt_completions gwt grove

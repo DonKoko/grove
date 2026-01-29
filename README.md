@@ -33,6 +33,8 @@ echo -e '\n# Grove - git worktree tool\nsource /usr/local/share/grove/integratio
 echo -e '\n# Grove - git worktree tool\nsource /usr/local/share/grove/integrations/grove.bash' >> ~/.bashrc && source ~/.bashrc
 ```
 
+You can use either `gwt` or `grove` as the command name—they are interchangeable.
+
 ## Usage
 
 ```bash
@@ -100,21 +102,24 @@ All worktrees share the same `.git` history, so commits in one are immediately v
 
 ## Managing Worktrees
 
-Grove creates worktrees—use git's built-in commands to manage them:
-
 ```bash
 # List all worktrees
-git worktree list
+gwt list
 
 # Remove a worktree
-git worktree remove .worktrees/auth
+gwt remove auth
 
 # Force remove (if dirty)
-git worktree remove --force .worktrees/auth
-
-# Clean up stale references
-git worktree prune
+gwt remove auth --force
 ```
+
+### Updating
+
+```bash
+gwt update
+```
+
+This fetches and runs the latest installer from GitHub.
 
 ## Example Workflow
 

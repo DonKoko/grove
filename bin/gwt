@@ -74,6 +74,7 @@ Usage:
   gwt -n <new-branch> [base] [-f folder]   Create a new branch (default base: main)
   gwt list                                 List all worktrees
   gwt remove <name> [--force]              Remove a worktree
+  gwt update                               Update grove to latest version
 
 Options:
   -n             Create a new branch instead of checking out existing
@@ -93,6 +94,7 @@ Examples:
   gwt list                            # list all worktrees
   gwt remove auth                     # remove .worktrees/auth
   gwt remove auth --force             # force remove if dirty
+  gwt update                          # update grove to latest version
 
 Configuration (environment variables):
   GWT_DIR          Worktrees directory name (default: .worktrees)
@@ -111,6 +113,14 @@ show_version() {
 
 cmd_list() {
   git worktree list
+}
+
+cmd_update() {
+  start_spinner "Updating grove..."
+  local rc=0
+  curl -fsSL https://raw.githubusercontent.com/donkoko/grove/main/install.sh | bash > "$SPINNER_TMPFILE" 2>&1 || rc=$?
+  stop_spinner "$rc" "Grove updated successfully"
+  [[ "$rc" -ne 0 ]] && exit 1
 }
 
 cmd_remove() {
@@ -151,6 +161,10 @@ main() {
     remove)
       shift
       cmd_remove "$1" "$2"
+      exit 0
+      ;;
+    update)
+      cmd_update
       exit 0
       ;;
   esac

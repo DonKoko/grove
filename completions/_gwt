@@ -1,4 +1,4 @@
-#compdef gwt
+#compdef gwt grove
 # Zsh completion for gwt
 # Add to fpath or source directly
 
@@ -8,6 +8,7 @@ _gwt() {
   subcommands=(
     'list:List all worktrees'
     'remove:Remove a worktree'
+    'update:Update grove to latest version'
   )
 
   options=(
