@@ -1,6 +1,6 @@
 # 🌳 Grove
 
-A modern CLI tool for managing git worktrees. Create isolated worktrees with automatic environment setup—perfect for running multiple AI coding assistants on different branches simultaneously.
+A simple CLI tool for managing git worktrees. Create isolated worktrees with automatic environment setup—perfect for running multiple AI coding assistants on different branches simultaneously.
 
 ## Why Grove?
 
