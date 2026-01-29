@@ -45,6 +45,7 @@ info "Installing gwt to ${BIN_DIR}..."
 $SUDO mkdir -p "$BIN_DIR"
 $SUDO cp "$TMP_DIR/grove/bin/gwt" "$BIN_DIR/gwt"
 $SUDO chmod +x "$BIN_DIR/gwt"
+$SUDO ln -sf "${BIN_DIR}/gwt" "${BIN_DIR}/grove"
 
 # Install completions and integrations
 info "Installing shell integrations..."
@@ -79,4 +80,4 @@ fi
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo "Usage: gwt --help"
+echo "Usage: gwt --help  (or: grove --help)"

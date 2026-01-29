@@ -22,6 +22,8 @@ gwt() {
   return $exit_code
 }
 
+grove() { gwt "$@"; }
+
 # Source bash completions if available
 if [[ -f "/usr/local/share/grove/completions/gwt.bash" ]]; then
   source "/usr/local/share/grove/completions/gwt.bash"
