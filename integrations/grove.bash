@@ -11,6 +11,11 @@ gwt() {
   output=$(command gwt "$@")
   exit_code=$?
 
+  # Print any non-marker output
+  local regular_output
+  regular_output=$(echo "$output" | grep -v "^GWT_PATH:")
+  [[ -n "$regular_output" ]] && echo "$regular_output"
+
   # If successful, extract path and cd into it
   if [[ $exit_code -eq 0 ]]; then
     worktree_path=$(echo "$output" | grep "^GWT_PATH:" | cut -d: -f2-)

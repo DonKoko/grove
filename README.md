@@ -100,26 +100,16 @@ When you run `gwt feature/auth`:
 
 All worktrees share the same `.git` history, so commits in one are immediately visible in others.
 
-## Managing Worktrees
+### Subcommands
 
-```bash
-# List all worktrees
-gwt list
-
-# Remove a worktree
-gwt remove auth
-
-# Force remove (if dirty)
-gwt remove auth --force
-```
-
-### Updating
-
-```bash
-gwt update
-```
-
-This fetches and runs the latest installer from GitHub.
+| Command | Description |
+|---------|-------------|
+| `gwt list` | List all worktrees |
+| `gwt remove` | Interactively select a worktree to remove |
+| `gwt remove <name>` | Remove a specific worktree |
+| `gwt remove <name> --force` | Force remove a dirty worktree |
+| `gwt update` | Update grove to the latest version |
+| `gwt help` | Show help message |
 
 ## Example Workflow
 
