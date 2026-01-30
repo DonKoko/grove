@@ -75,6 +75,7 @@ Usage:
   gwt list                                 List all worktrees
   gwt remove <name> [--force]              Remove a worktree
   gwt update                               Update grove to latest version
+  gwt help                                 Show this help message
 
 Options:
   -n             Create a new branch instead of checking out existing
@@ -240,6 +241,10 @@ main() {
       ;;
     update)
       cmd_update
+      exit 0
+      ;;
+    help)
+      show_help
       exit 0
       ;;
   esac
