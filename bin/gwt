@@ -18,7 +18,9 @@ cleanup_spinner() {
     SPINNER_PID=""
     printf "\r\033[K" >&2
   fi
-  [[ -n "$SPINNER_TMPFILE" ]] && rm -f "$SPINNER_TMPFILE"
+  if [[ -n "$SPINNER_TMPFILE" ]]; then
+    rm -f "$SPINNER_TMPFILE"
+  fi
 }
 trap cleanup_spinner EXIT INT TERM
 
