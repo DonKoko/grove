@@ -121,11 +121,17 @@ cmd_list() {
 }
 
 cmd_update() {
-  start_spinner "Updating grove..."
+  echo "Updating grove..." >&2
+  echo "" >&2
   local rc=0
-  curl -fsSL https://raw.githubusercontent.com/donkoko/grove/main/install.sh | bash > "$SPINNER_TMPFILE" 2>&1 || rc=$?
-  stop_spinner "$rc" "Grove updated successfully"
-  [[ "$rc" -ne 0 ]] && exit 1
+  curl -fsSL https://raw.githubusercontent.com/donkoko/grove/main/install.sh | bash || rc=$?
+  echo "" >&2
+  if [[ "$rc" -eq 0 ]]; then
+    echo -e "\033[32m✓\033[0m Grove updated successfully" >&2
+  else
+    echo -e "\033[31m✗\033[0m Failed to update grove" >&2
+    exit 1
+  fi
 }
 
 select_worktree() {
