@@ -31,7 +31,7 @@ _gwt() {
     if [[ -d "$gwt_dir" ]]; then
       worktrees=(${(f)"$(ls -1 "$gwt_dir" 2>/dev/null)"})
     fi
-    _arguments "2:worktree:($worktrees)" "3:force:(--force)"
+    _arguments '--force[Force remove dirty worktrees]' '*:worktree:($worktrees)'
     return
   fi
 

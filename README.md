@@ -105,9 +105,9 @@ All worktrees share the same `.git` history, so commits in one are immediately v
 | Command | Description |
 |---------|-------------|
 | `gwt list` | List all worktrees |
-| `gwt remove` | Interactively select a worktree to remove |
-| `gwt remove <name>` | Remove a specific worktree |
-| `gwt remove <name> --force` | Force remove a dirty worktree |
+| `gwt remove` | Interactively multi-select worktrees to remove |
+| `gwt remove <name...>` | Remove one or more worktrees by name |
+| `gwt remove <name...> --force` | Force remove dirty worktrees |
 | `gwt update` | Update grove to the latest version |
 | `gwt help` | Show help message |
 

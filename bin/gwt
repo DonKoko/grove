@@ -75,7 +75,7 @@ Usage:
   gwt <existing-branch> [-f folder]        Checkout an existing branch
   gwt -n <new-branch> [base] [-f folder]   Create a new branch (default base: main)
   gwt list                                 List all worktrees
-  gwt remove <name> [--force]              Remove a worktree
+  gwt remove [name...] [--force]            Remove worktree(s) (interactive if no name)
   gwt update                               Update grove to latest version
   gwt help                                 Show this help message
 
@@ -95,8 +95,10 @@ Examples:
   gwt -n feature/new-thing -f cool    # custom folder name
   gwt feature/auth -s                 # skip npm install
   gwt list                            # list all worktrees
-  gwt remove auth                     # remove .worktrees/auth
-  gwt remove auth --force             # force remove if dirty
+  gwt remove                            # interactive multi-select
+  gwt remove auth                      # remove .worktrees/auth
+  gwt remove auth api                  # remove multiple worktrees
+  gwt remove auth --force              # force remove if dirty
   gwt update                          # update grove to latest version
 
 Configuration (environment variables):
@@ -185,12 +187,111 @@ select_worktree() {
   echo "${items[$selected]}"
 }
 
-cmd_remove() {
-  local name="$1"
-  local force="$2"
+multi_select_worktree() {
+  local -a items=("$@")
+  local count=${#items[@]}
+  local cursor=0
+  local hint="\033[2m↑/↓ navigate · space toggle · enter confirm · esc/q cancel\033[0m"
+  # Total drawn lines: count + 1 (blank line before hint) + 1 (hint)
+  local total_lines=$((count + 2))
 
-  if [[ -z "$name" ]]; then
-    # Interactive selection if no name given
+  # Parallel selection flags array (bash 3.2 compatible)
+  local -a sel=()
+  for (( i=0; i<count; i++ )); do
+    sel+=("0")
+  done
+
+  # Hide cursor
+  printf "\033[?25l" >&2
+  trap 'printf "\033[?25h" >&2' RETURN
+
+  _draw_multi_list() {
+    for i in "${!items[@]}"; do
+      local checkbox="◻"
+      [[ "${sel[$i]}" == "1" ]] && checkbox="◼"
+      if [[ $i -eq $cursor ]]; then
+        printf "\033[36m❯ %s %s\033[0m\n" "$checkbox" "${items[$i]}" >&2
+      else
+        printf "  %s %s\n" "$checkbox" "${items[$i]}" >&2
+      fi
+    done
+    printf "\n" >&2
+    printf "${hint}\n" >&2
+  }
+
+  _draw_multi_list
+
+  while true; do
+    IFS= read -rsn1 key
+    if [[ "$key" == $'\x1b' ]]; then
+      read -rsn1 -t 1 next 2>/dev/null || true
+      if [[ -n "$next" ]]; then
+        read -rsn1 -t 1 dir 2>/dev/null || true
+        key+="${next}${dir}"
+      else
+        # Bare Esc — cancel
+        printf "\033[%dA\033[J" "$total_lines" >&2
+        return 1
+      fi
+    fi
+
+    case "$key" in
+      $'\x1b[A'|k)
+        ((cursor > 0)) && ((cursor--))
+        ;;
+      $'\x1b[B'|j)
+        ((cursor < count - 1)) && ((cursor++))
+        ;;
+      " ")
+        if [[ "${sel[$cursor]}" == "0" ]]; then
+          sel[$cursor]="1"
+        else
+          sel[$cursor]="0"
+        fi
+        ;;
+      "")
+        # Enter — confirm
+        local has_selection=0
+        for (( i=0; i<count; i++ )); do
+          if [[ "${sel[$i]}" == "1" ]]; then
+            echo "${items[$i]}"
+            has_selection=1
+          fi
+        done
+        [[ "$has_selection" -eq 0 ]] && return 1
+        return 0
+        ;;
+      q)
+        printf "\033[%dA\033[J" "$total_lines" >&2
+        return 1
+        ;;
+    esac
+
+    printf "\033[%dA\033[J" "$total_lines" >&2
+    _draw_multi_list
+  done
+}
+
+cmd_remove() {
+  local -a names=()
+  local force=false
+
+  # Parse args: collect names and extract --force/-f
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --force|-f)
+        force=true
+        shift
+        ;;
+      *)
+        names+=("$1")
+        shift
+        ;;
+    esac
+  done
+
+  if [[ ${#names[@]} -eq 0 ]]; then
+    # Interactive multi-select if no names given
     if [[ ! -d "$GWT_DIR" ]]; then
       echo "No worktrees found." >&2
       exit 1
@@ -206,27 +307,39 @@ cmd_remove() {
       exit 1
     fi
 
-    echo -e "\033[1mSelect a worktree to remove:\033[0m" >&2
+    echo -e "\033[1mSelect worktrees to remove:\033[0m" >&2
     echo "" >&2
-    name=$(select_worktree "${worktrees[@]}") || exit 0
+    local selection
+    selection=$(multi_select_worktree "${worktrees[@]}") || exit 0
+
+    while IFS= read -r item; do
+      names+=("$item")
+    done <<< "$selection"
   fi
 
-  local worktree_path="${GWT_DIR}/${name}"
+  local any_failed=0
 
-  if [[ ! -d "$worktree_path" ]]; then
-    echo "Error: Worktree '${worktree_path}' does not exist."
-    exit 1
-  fi
+  for name in "${names[@]}"; do
+    local worktree_path="${GWT_DIR}/${name}"
 
-  local rc=0
-  start_spinner "Removing worktree..."
-  if [[ "$force" == "--force" ]] || [[ "$force" == "-f" ]]; then
-    git worktree remove --force "$worktree_path" > "$SPINNER_TMPFILE" 2>&1 || rc=$?
-  else
-    git worktree remove "$worktree_path" > "$SPINNER_TMPFILE" 2>&1 || rc=$?
-  fi
-  stop_spinner "$rc" "Removed worktree ${worktree_path}"
-  [[ "$rc" -ne 0 ]] && exit 1
+    if [[ ! -d "$worktree_path" ]]; then
+      echo -e "\033[31m✗\033[0m Worktree '${worktree_path}' does not exist." >&2
+      any_failed=1
+      continue
+    fi
+
+    local rc=0
+    start_spinner "Removing worktree ${name}..."
+    if [[ "$force" == true ]]; then
+      git worktree remove --force "$worktree_path" > "$SPINNER_TMPFILE" 2>&1 || rc=$?
+    else
+      git worktree remove "$worktree_path" > "$SPINNER_TMPFILE" 2>&1 || rc=$?
+    fi
+    stop_spinner "$rc" "Removed worktree ${worktree_path}"
+    [[ "$rc" -ne 0 ]] && any_failed=1
+  done
+
+  [[ "$any_failed" -ne 0 ]] && exit 1
 }
 
 main() {
@@ -238,7 +351,7 @@ main() {
       ;;
     remove)
       shift
-      cmd_remove "${1:-}" "${2:-}"
+      cmd_remove "$@"
       exit 0
       ;;
     update)
